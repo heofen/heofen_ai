@@ -3,8 +3,9 @@ import json
 import time
 import telebot
 from telebot import types
-from telebot.types import BusinessConnection
+from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup
 from groq import Groq
+import random
 
 # Настройка детального логирования
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -20,6 +21,20 @@ user_dialogues = {}
 user_modes = {}
 users_time = {}
 forwarded_messages = {}
+lastUsage = 0
+
+answers = [
+    "Умный не тот, кто умный, а тот, кто с калькулятором",
+    "Красив не тот, кто красив, а тот, у кого фильтры в Инстаграме",
+    "Быстрый не тот, кто бежит, а тот, кто в лифте",
+    "Добрый не тот, кто добрый, а тот, у кого конфет много",
+    "Спящий не тот, кто спит, а тот, кто может",
+    "Счастлив не тот, кто счастлив, а тот, кто с пиццей",
+    "Знающий не тот, кто знает, а тот, у кого Google открыт"
+]
+
+def helpMessage(message):
+    bot.reply_to(message, "Этот бот вобрал в себя всю шизу разраба\n\nЧто-бы бот ответил вам используйте в начале сообщения команду /ai")
 
 def get_prompt():
     with open("prompt.txt", 'r', encoding='utf-8') as file:
@@ -100,6 +115,11 @@ def handle_user_message(message, is_business=False):
         logging.debug(f"Received message from {user_id}: {message.text}")
         logging.debug(f"Is business: {is_business}")
 
+        if message.text.startswith("/ai "):
+            text = message.text[4:]
+        else:
+            text = message.text
+
         if not check_spam(user_id):
             if is_business:
                 bot.send_message(message.chat.id, "Вы были заблокированы за спам. За разбаном пишите в https://t.me/aikomarucardsbot", business_connection_id = is_business)
@@ -114,7 +134,7 @@ def handle_user_message(message, is_business=False):
             user_modes[user_id] = "AI"  # Default mode is AI
 
         if user_modes[user_id] == "AI":
-            user_dialogues[user_id].append({"role": "user", "content": message.text})
+            user_dialogues[user_id].append({"role": "user", "content": text})
 
             system_message = {
                 "role": "system",
@@ -139,8 +159,7 @@ def handle_user_message(message, is_business=False):
             if is_business:
                 bot.send_message(message.chat.id, response, reply_markup=markup, business_connection_id = is_business)
             else:
-                
-                bot.send_message(message.chat.id, response, reply_markup=markup)
+                bot.reply_to(message, response, reply_markup=markup)
         else:
             sent_message = bot.forward_message(1268026433, message.chat.id, message.message_id)
             forwarded_messages[sent_message.message_id] = user_id
@@ -148,22 +167,37 @@ def handle_user_message(message, is_business=False):
         logging.error(f"Error handling message: {e}")
 
 
-@bot.business_message_handler(func=lambda message: True, content_types=['text'])
-def handle_business_message(message):
-    logging.debug("Handle business message")
-    logging.debug(f"Message JSON: {message.json}")
-
-    handle_user_message(message, is_business=message.business_connection_id)
+# @bot.business_message_handler(func=lambda message: True, content_types=['text'])
+# def handle_business_message(message):
+#     logging.debug("Handle business message")
+#     logging.debug(f"Message JSON: {message.json}")
+#
+#     handle_user_message(message, is_business=message.business_connection_id)
     
 @bot.message_handler(content_types=['text'])
 def handle_private_message(message):
+    global lastUsage
     logging.debug("Handle private message")
     logging.debug(f"Received message: {message}")
-    handle_user_message(message, is_business=False)
-    # Обновляем информацию о бизнес-соединении
-    
-
-
+    if message.chat.id in [-1002212481103, -1002244372251]:
+        if message.text == "/help" or message.text == "/help@heofenAiBot":
+            helpMessage(message)
+        if message.text.startswith("/ai") or (message.reply_to_message and message.reply_to_message.from_user.id == 7413001217):
+            if time.time() - lastUsage < 1.5:
+                markup = InlineKeyboardMarkup()
+                button = InlineKeyboardButton("Почему?", url="https://telegra.ph/Pochemu-speshka-ehto-ne-ochen-horosho-09-13")
+                markup.add(button)
+                bot.reply_to(message, "Не так быстро", reply_markup=markup)
+            elif (message.text == '/ai'):
+                bot.reply_to(message, random.choice(answers))
+            else:
+                handle_user_message(message, is_business=False)
+                lastUsage = time.time()
+    else:
+        bot.reply_to(message,
+                     "Бот работает только в чате канала t.me/komaru_updates. Что-бы использовтать бота перейдите по ссылке")
+        if message.chat.type in  ["supergroup", "group"]:
+            bot.leave_chat(message.chat.id)
 
 
 # Обработчик callback-запросов
@@ -177,7 +211,6 @@ def handle_callback(call):
             if user_id in user_dialogues:
                 user_dialogues[user_id] = []
             bot.answer_callback_query(call.id, "Диалог очищен.")
-            send_business_intro(call.message.chat.id, "Диалог очищен.")
     except Exception as e:
         logging.error(f"Error handling callback query: {e}")
 
@@ -186,5 +219,3 @@ try:
     bot.polling()
 except Exception as e:
     logging.error(f"Error starting bot polling: {e}")
-
-
