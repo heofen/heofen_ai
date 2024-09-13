@@ -208,7 +208,7 @@ def check_spam(user_id):
 # Получение ответа от Groq
 def get_completion(messages):
     try:
-        completion = client.chat.completions.create(model="gemma2-9b-it",
+        completion = client.chat.completions.create(model="llama-3.1-70b-versatile",
                                                     messages=messages,
                                                     temperature=0.70,
                                                     max_tokens=900,
