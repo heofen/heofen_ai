@@ -62,7 +62,7 @@ def mute(message):
             can_invite_users=False,
             can_pin_messages=False
         )
-        bot.reply_to(message, f"Пользователь {message.reply_to_message.from_user.first_name} заглушен на 5 минут.")
+        bot.reply_to(message, f"Пользователь {message.from_user.first_name} заглушен на 5 минут.")
     except Exception as e:
         bot.reply_to(message, f"Ошибка при заглушении: {e}")
 
