@@ -5,6 +5,7 @@ import telebot
 from telebot import types
 from telebot.types import BusinessConnection
 from groq import Groq
+from datetime import datetime, timedelta
 
 # Настройка детального логирования
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -20,6 +21,21 @@ user_dialogues = {}
 user_modes = {}
 users_time = {}
 forwarded_messages = {}
+
+lastUsages = {
+    "1488": 1488
+}
+
+def mute(message):
+    permissions = ChatPermissions(
+        can_send_messages=False,
+        can_send_media_messages=False,
+        can_send_other_messages=False,
+        can_add_web_page_previews=False
+    )
+    until_date = datetime.now() + timedelta(minutes=5)
+    bot.restrict_chat_member(message.chat.id, message.from_user.id, permissions, until_date=until_date)
+    bot.reply_to(message, f"{message.from_user.first_name} был заглушен на 5 минут за то что часто пользовался ботом.\nНе флудите пацаны, вы матерям еще нужны")
 
 def get_prompt():
     with open("prompt.txt", 'r', encoding='utf-8') as file:
