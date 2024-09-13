@@ -62,7 +62,7 @@ def mute(message):
             can_invite_users=False,
             can_pin_messages=False
         )
-        bot.reply_to(message, f"Пользователь {message.reply_to_message.from_user.first_name} заглушен на 5 минут.")
+        bot.reply_to(message, f"Пользователь {message.from_user.first_name} заглушен на 5 минут.")
     except Exception as e:
         bot.reply_to(message, f"Ошибка при заглушении: {e}")
 
@@ -217,7 +217,7 @@ def handle_private_message(message):
             user_id = str(message.from_user.id)
             if user_id not in lastUsages:
                 lastUsages[user_id] = 0
-            if lastUsages[user_id] + 30 < time.time():
+            if lastUsages[user_id] + 30 > time.time():
                 mute(message)
             elif time.time() - lastUsage < 1.5:
                 markup = InlineKeyboardMarkup()
