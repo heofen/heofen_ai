@@ -58,6 +58,7 @@ def mute_duration(message):
     if message.from_user.id in admin_list and len(message.text.split()) == 2:
         global MuteDuration
         MuteDuration = int(message.text.split()[-1])
+        bot.reply_to(message, f"Продолжительность мута равна {MuteDuration} секундам")
 
 @bot.message_handler(commands=['ai_kd'])
 def mute_duration(message):
@@ -72,6 +73,7 @@ def mute_duration(message):
     if message.from_user.id in admin_list and len(message.text.split()) == 2:
         global kd
         kd = int(message.text.split()[-1])
+        bot.reply_to(message, f"Кд равен {kd} секундам")
 
 @bot.message_handler(commands=['switch_mute'])
 def mute_duration(message):
@@ -86,6 +88,7 @@ def mute_duration(message):
     if message.from_user.id in admin_list and len(message.text.split()) == 1:
         global mute_flag
         mute_flag = -mute_flag
+        bot.reply_to(message, f"Режим антиспама переключен на {mute_flag}")
 
 def mute(message):
     user_id = message.from_user.id
