@@ -8,8 +8,11 @@ from groq import Groq
 from datetime import datetime, timedelta
 import random
 
+print("hui")
+
 # Настройка детального логирования
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Токены API
 API_KEY = "7413001217:AAGNi4YerK7M-5kjAvl_wjCfTd3FG4HEFAU"
@@ -38,12 +41,16 @@ answers = [
     "Знающий не тот, кто знает, а тот, у кого Google открыт"
 ]
 
-def helpMessage(message):
-    bot.reply_to(message, "Этот бот вобрал в себя всю шизу разраба\n\nЧто-бы бот ответил вам используйте в начале сообщения команду /ai")
 
-lastUsages = {
-    "1488": 1488
-}
+def helpMessage(message):
+    bot.reply_to(
+        message,
+        "Этот бот вобрал в себя всю шизу разраба\n\nЧто-бы бот ответил вам используйте в начале сообщения команду /ai"
+    )
+
+
+lastUsages = {"1488": 1488}
+
 
 @bot.message_handler(commands=['m_duration'])
 def mute_duration(message):
@@ -58,7 +65,10 @@ def mute_duration(message):
     if message.from_user.id in admin_list and len(message.text.split()) == 2:
         global MuteDuration
         MuteDuration = int(message.text.split()[-1])
-        bot.reply_to(message, f"Продолжительность мута равна {MuteDuration} секундам")
+        bot.reply_to(
+            message,
+            f"Продолжительность мута изминена на {MuteDuration} секунд")
+
 
 @bot.message_handler(commands=['ai_kd'])
 def mute_duration(message):
@@ -73,7 +83,8 @@ def mute_duration(message):
     if message.from_user.id in admin_list and len(message.text.split()) == 2:
         global kd
         kd = int(message.text.split()[-1])
-        bot.reply_to(message, f"Кд равен {kd} секундам")
+        bot.reply_to(message, f"Кд изминен на {kd} секунд")
+
 
 @bot.message_handler(commands=['switch_mute'])
 def mute_duration(message):
@@ -87,8 +98,29 @@ def mute_duration(message):
 
     if message.from_user.id in admin_list and len(message.text.split()) == 1:
         global mute_flag
-        mute_flag = -mute_flag
+        if (mute_flag):
+            mute_flag = False
+        else:
+            mute_flag = True
         bot.reply_to(message, f"Режим антиспама переключен на {mute_flag}")
+
+
+@bot.message_handler(commands=['adm_help'])
+def mute_duration(message):
+    chat_id = message.chat.id
+    admins = bot.get_chat_administrators(chat_id)
+
+    admin_list = []
+    for admin in admins:
+        user = admin.user
+        admin_list.append(user.id)
+
+    if message.from_user.id in admin_list and len(message.text.split()) == 1:
+        bot.reply_to(
+            message,
+            f"Период мута: {MuteDuration} секунд\nКд: {kd}\nРежим антиспама: {mute_flag}\n\n/m_duration <период> - изменить период мута\n/ai_kd <кд> - изменить кд\n/switch_mute - переключить режим антиспама"
+        )
+
 
 def mute(message):
     user_id = message.from_user.id
@@ -99,32 +131,32 @@ def mute(message):
 
     try:
         # Ограничиваем пользователя
-        bot.restrict_chat_member(
-            chat_id,
-            user_id,
-            until_date=until_date,
-            can_send_messages=False,
-            can_send_media_messages=False,
-            can_send_other_messages=False,
-            can_add_web_page_previews=False,
-            can_change_info=False,
-            can_invite_users=False,
-            can_pin_messages=False
-        )
+        bot.restrict_chat_member(chat_id,
+                                 user_id,
+                                 until_date=until_date,
+                                 can_send_messages=False,
+                                 can_send_media_messages=False,
+                                 can_send_other_messages=False,
+                                 can_add_web_page_previews=False,
+                                 can_change_info=False,
+                                 can_invite_users=False,
+                                 can_pin_messages=False)
         if MuteDuration == 0:
-            return 
+            return
         if MuteDuration < 60:
-            mute_msg =  f"Пользователь {message.from_user.first_name} заглушен на {MuteDuration} секунд."
+            mute_msg = f"Пользователь {message.from_user.first_name} заглушен на {MuteDuration} секунд."
         else:
             mute_msg = f"Пользователь {message.from_user.first_name} заглушен на {MuteDuration // 60} минут."
         bot.reply_to(message, mute_msg)
     except Exception as e:
         bot.reply_to(message, f"Ошибка при заглушении: {e}")
 
+
 def get_prompt():
     with open("prompt.txt", 'r', encoding='utf-8') as file:
         lines = file.readlines()
     return ''.join(line.strip() + '\n' for line in lines).strip()
+
 
 # Чёрный список
 def check_blacklist(user_id):
@@ -136,6 +168,7 @@ def check_blacklist(user_id):
     except (FileNotFoundError, json.JSONDecodeError) as e:
         logging.error(f"Error loading blacklist: {e}")
         return True
+
 
 def add_blacklist(user_id):
     try:
@@ -151,6 +184,7 @@ def add_blacklist(user_id):
         with open("blacklist.json", 'w', encoding='utf-8') as f:
             data = {"blacklist": [int(user_id)]}
             f.write(json.dumps(data, ensure_ascii=False, indent=4))
+
 
 def check_spam(user_id):
     if not check_blacklist(user_id):
@@ -169,18 +203,17 @@ def check_spam(user_id):
             return False
 
     return True
-    
+
+
 # Получение ответа от Groq
 def get_completion(messages):
     try:
-        completion = client.chat.completions.create(
-            model="gemma2-9b-it",
-            messages=messages,
-            temperature=0.70,
-            max_tokens=900,
-            top_p=1,
-            stream=True
-        )
+        completion = client.chat.completions.create(model="gemma2-9b-it",
+                                                    messages=messages,
+                                                    temperature=0.70,
+                                                    max_tokens=900,
+                                                    top_p=1,
+                                                    stream=True)
 
         response = ""
         for chunk in completion:
@@ -190,7 +223,6 @@ def get_completion(messages):
     except Exception as e:
         logging.error(f"Error getting completion: {e}")
         return f"Произошла ошибка при обработке вашего запроса. {e}"
-
 
 
 # Обработчик сообщений
@@ -207,9 +239,15 @@ def handle_user_message(message, is_business=False):
 
         if not check_spam(user_id):
             if is_business:
-                bot.send_message(message.chat.id, "Вы были заблокированы за спам. За разбаном пишите в https://t.me/aikomarucardsbot", business_connection_id = is_business)
+                bot.send_message(
+                    message.chat.id,
+                    "Вы были заблокированы за спам. За разбаном пишите в https://t.me/aikomarucardsbot",
+                    business_connection_id=is_business)
             else:
-                bot.send_message(message.chat.id, "Вы были заблокированы за спам. За разбаном пишите в https://t.me/aikomarucardsbot")
+                bot.send_message(
+                    message.chat.id,
+                    "Вы были заблокированы за спам. За разбаном пишите в https://t.me/aikomarucardsbot"
+                )
             return
 
         if user_id not in user_dialogues:
@@ -221,32 +259,39 @@ def handle_user_message(message, is_business=False):
         if user_modes[user_id] == "AI":
             user_dialogues[user_id].append({"role": "user", "content": text})
 
-            system_message = {
-                "role": "system",
-                "content": get_prompt()
-            }
+            system_message = {"role": "system", "content": get_prompt()}
             user_dialogues[user_id].insert(0, system_message)
-            logging.debug(f"Dialogue before completion: {user_dialogues[user_id]}")
+            logging.debug(
+                f"Dialogue before completion: {user_dialogues[user_id]}")
             response = get_completion(user_dialogues[user_id])
             user_dialogues[user_id].pop(0)
 
-            user_dialogues[user_id].append({"role": "assistant", "content": response})
-            logging.debug(f"Dialogue after completion: {user_dialogues[user_id]}")
+            user_dialogues[user_id].append({
+                "role": "assistant",
+                "content": response
+            })
+            logging.debug(
+                f"Dialogue after completion: {user_dialogues[user_id]}")
 
-            buttons = [
-                {
-                    "text": "Очистить диалог",
-                    "callback_data": "clear_dialogue"
-                }
-            ]
+            buttons = [{
+                "text": "Очистить диалог",
+                "callback_data": "clear_dialogue"
+            }]
             markup = types.InlineKeyboardMarkup()
-            markup.add(types.InlineKeyboardButton(buttons[0]["text"], callback_data=buttons[0]["callback_data"]))
+            markup.add(
+                types.InlineKeyboardButton(
+                    buttons[0]["text"],
+                    callback_data=buttons[0]["callback_data"]))
             if is_business:
-                bot.send_message(message.chat.id, response, reply_markup=markup, business_connection_id = is_business)
+                bot.send_message(message.chat.id,
+                                 response,
+                                 reply_markup=markup,
+                                 business_connection_id=is_business)
             else:
                 bot.reply_to(message, response, reply_markup=markup)
         else:
-            sent_message = bot.forward_message(1268026433, message.chat.id, message.message_id)
+            sent_message = bot.forward_message(1268026433, message.chat.id,
+                                               message.message_id)
             forwarded_messages[sent_message.message_id] = user_id
     except Exception as e:
         logging.error(f"Error handling message: {e}")
@@ -258,7 +303,8 @@ def handle_user_message(message, is_business=False):
 #     logging.debug(f"Message JSON: {message.json}")
 #
 #     handle_user_message(message, is_business=message.business_connection_id)
-    
+
+
 @bot.message_handler(content_types=['text'])
 def handle_private_message(message):
     global lastUsage
@@ -268,7 +314,9 @@ def handle_private_message(message):
     if message.chat.id in [-1002212481103, -1002244372251]:
         if message.text == "/help" or message.text == "/help@heofenAiBot":
             helpMessage(message)
-        if message.text.startswith("/ai") or (message.reply_to_message and message.reply_to_message.from_user.id == 7413001217):
+        if message.text.startswith("/ai") or (
+                message.reply_to_message
+                and message.reply_to_message.from_user.id == 7413001217):
             user_id = str(message.from_user.id)
             if user_id not in lastUsages:
                 lastUsages[user_id] = 0
@@ -276,7 +324,11 @@ def handle_private_message(message):
                 mute(message)
             elif time.time() - lastUsage < 1.5:
                 markup = InlineKeyboardMarkup()
-                button = InlineKeyboardButton("Почему?", url="https://telegra.ph/Pochemu-speshka-ehto-ne-ochen-horosho-09-13")
+                button = InlineKeyboardButton(
+                    "Почему?",
+                    url=
+                    "https://telegra.ph/Pochemu-speshka-ehto-ne-ochen-horosho-09-13"
+                )
                 markup.add(button)
                 bot.reply_to(message, "Не так быстро", reply_markup=markup)
                 lastUsages[user_id] = time.time()
@@ -288,9 +340,11 @@ def handle_private_message(message):
                 lastUsage = time.time()
                 lastUsages[user_id] = time.time()
     else:
-        bot.reply_to(message,
-                     "Бот работает только в чате канала t.me/komaru_updates. Что-бы использовтать бота перейдите по ссылке")
-        if message.chat.type in  ["supergroup", "group"]:
+        bot.reply_to(
+            message,
+            "Бот работает только в чате канала t.me/komaru_updates. Что-бы использовтать бота перейдите по ссылке"
+        )
+        if message.chat.type in ["supergroup", "group"]:
             bot.leave_chat(message.chat.id)
 
 
@@ -307,6 +361,7 @@ def handle_callback(call):
             bot.answer_callback_query(call.id, "Диалог очищен.")
     except Exception as e:
         logging.error(f"Error handling callback query: {e}")
+
 
 logging.info("Starting bot polling...")
 try:
