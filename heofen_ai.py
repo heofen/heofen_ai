@@ -3,7 +3,7 @@ import json
 import time
 import telebot
 from telebot import types
-from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup
+from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup, ChatPermissions
 from groq import Groq
 from datetime import datetime, timedelta
 import random
