@@ -18,6 +18,10 @@ GROQ_API_KEY = "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"
 bot = telebot.TeleBot(API_KEY)
 client = Groq(api_key=GROQ_API_KEY)
 
+MuteDuration = 300
+kd = 30
+mute_flag = True
+
 user_dialogues = {}
 user_modes = {}
 users_time = {}
@@ -41,6 +45,48 @@ lastUsages = {
     "1488": 1488
 }
 
+@bot.message_handler(commands=['m_duration'])
+def mute_duration(message):
+    chat_id = message.chat.id
+    admins = bot.get_chat_administrators(chat_id)
+
+    admin_list = []
+    for admin in admins:
+        user = admin.user
+        admin_list.append(user.id)
+
+    if message.from_user.id in admin_list and len(message.text.split()) == 2:
+        global MuteDuration
+        MuteDuration = int(message.text.split()[-1])
+
+@bot.message_handler(commands=['ai_kd'])
+def mute_duration(message):
+    chat_id = message.chat.id
+    admins = bot.get_chat_administrators(chat_id)
+
+    admin_list = []
+    for admin in admins:
+        user = admin.user
+        admin_list.append(user.id)
+
+    if message.from_user.id in admin_list and len(message.text.split()) == 2:
+        global kd
+        kd = int(message.text.split()[-1])
+
+@bot.message_handler(commands=['switch_mute'])
+def mute_duration(message):
+    chat_id = message.chat.id
+    admins = bot.get_chat_administrators(chat_id)
+
+    admin_list = []
+    for admin in admins:
+        user = admin.user
+        admin_list.append(user.id)
+
+    if message.from_user.id in admin_list and len(message.text.split()) == 1:
+        global mute_flag
+        mute_flag = -mute_flag
+
 def mute(message):
     user_id = message.from_user.id
     chat_id = message.chat.id
@@ -62,7 +108,11 @@ def mute(message):
             can_invite_users=False,
             can_pin_messages=False
         )
-        bot.reply_to(message, f"Пользователь {message.from_user.first_name} заглушен на 5 минут.")
+        if MuteDuration < 60:
+            mute_msg =  f"Пользователь {message.from_user.first_name} заглушен на {MuteDuration} секунд."
+        else:
+            mute_msg = f"Пользователь {message.from_user.first_name} заглушен на {MuteDuration // 60} минут."
+        bot.reply_to(message, mute_msg)
     except Exception as e:
         bot.reply_to(message, f"Ошибка при заглушении: {e}")
 
@@ -217,7 +267,7 @@ def handle_private_message(message):
             user_id = str(message.from_user.id)
             if user_id not in lastUsages:
                 lastUsages[user_id] = 0
-            if lastUsages[user_id] + 30 > time.time():
+            if lastUsages[user_id] + kd > time.time() and mute_flag:
                 mute(message)
             elif time.time() - lastUsage < 1.5:
                 markup = InlineKeyboardMarkup()
