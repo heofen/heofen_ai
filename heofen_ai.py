@@ -193,22 +193,31 @@ def handle_user_message(message, is_business=False):
 @bot.message_handler(content_types=['text'])
 def handle_private_message(message):
     global lastUsage
+    global lastUsages
     logging.debug("Handle private message")
     logging.debug(f"Received message: {message}")
     if message.chat.id in [-1002212481103, -1002244372251]:
         if message.text == "/help" or message.text == "/help@heofenAiBot":
             helpMessage(message)
         if message.text.startswith("/ai") or (message.reply_to_message and message.reply_to_message.from_user.id == 7413001217):
-            if time.time() - lastUsage < 1.5:
+            user_id = str(message.from_user.id)
+            if user_id not in lastUsages:
+                lastUsages[user_id] = 0
+            if lastUsages[user_id] + 30 < time.time():
+                mute(message)
+            elif time.time() - lastUsage < 1.5:
                 markup = InlineKeyboardMarkup()
                 button = InlineKeyboardButton("Почему?", url="https://telegra.ph/Pochemu-speshka-ehto-ne-ochen-horosho-09-13")
                 markup.add(button)
                 bot.reply_to(message, "Не так быстро", reply_markup=markup)
+                lastUsages[user_id] = time.time()
             elif (message.text == '/ai'):
                 bot.reply_to(message, random.choice(answers))
+                lastUsages[user_id] = time.time()
             else:
                 handle_user_message(message, is_business=False)
                 lastUsage = time.time()
+                lastUsages[user_id] = time.time()
     else:
         bot.reply_to(message,
                      "Бот работает только в чате канала t.me/komaru_updates. Что-бы использовтать бота перейдите по ссылке")
