@@ -111,6 +111,8 @@ def mute(message):
             can_invite_users=False,
             can_pin_messages=False
         )
+        if MuteDuration == 0:
+            return 
         if MuteDuration < 60:
             mute_msg =  f"Пользователь {message.from_user.first_name} заглушен на {MuteDuration} секунд."
         else:
