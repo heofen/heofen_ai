@@ -42,15 +42,29 @@ lastUsages = {
 }
 
 def mute(message):
-    permissions = ChatPermissions(
-        can_send_messages=False,
-        can_send_media_messages=False,
-        can_send_other_messages=False,
-        can_add_web_page_previews=False
-    )
-    until_date = datetime.now() + timedelta(minutes=5)
-    bot.restrict_chat_member(message.chat.id, message.from_user.id, permissions, until_date=until_date)
-    bot.reply_to(message, f"{message.from_user.first_name} был заглушен на 5 минут за то что часто пользовался ботом.\nНе флудите пацаны, вы матерям еще нужны")
+    user_id = message.from_user.id
+    chat_id = message.chat.id
+
+    # Текущая временная метка + 5 минут (300 секунд)
+    until_date = int(time.time()) + 300
+
+    try:
+        # Ограничиваем пользователя
+        bot.restrict_chat_member(
+            chat_id,
+            user_id,
+            until_date=until_date,
+            can_send_messages=False,
+            can_send_media_messages=False,
+            can_send_other_messages=False,
+            can_add_web_page_previews=False,
+            can_change_info=False,
+            can_invite_users=False,
+            can_pin_messages=False
+        )
+        bot.reply_to(message, f"Пользователь {message.reply_to_message.from_user.first_name} заглушен на 5 минут.")
+    except Exception as e:
+        bot.reply_to(message, f"Ошибка при заглушении: {e}")
 
 def get_prompt():
     with open("prompt.txt", 'r', encoding='utf-8') as file:
