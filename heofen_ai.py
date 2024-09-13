@@ -217,7 +217,7 @@ def handle_private_message(message):
             user_id = str(message.from_user.id)
             if user_id not in lastUsages:
                 lastUsages[user_id] = 0
-            if lastUsages[user_id] + 30 < time.time():
+            if lastUsages[user_id] + 30 > time.time():
                 mute(message)
             elif time.time() - lastUsage < 1.5:
                 markup = InlineKeyboardMarkup()
