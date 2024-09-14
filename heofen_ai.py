@@ -4,8 +4,8 @@ import time
 import telebot
 from telebot import types
 from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup, ChatPermissions
-from groq import Groq
-from datetime import datetime, timedelta
+import google.generativeai as genai
+from google.generativeai.types import HarmCategory, HarmBlockThreshold
 import random
 
 print("hui")
@@ -16,10 +16,39 @@ logging.basicConfig(level=logging.DEBUG,
 
 # Токены API
 API_KEY = "7413001217:AAGNi4YerK7M-5kjAvl_wjCfTd3FG4HEFAU"
-GROQ_API_KEY = "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"
+genai.configure(api_key="AIzaSyArBxqYLLZs_U6f1ybL8Ngas0DP1q_EnKQ")
+
+generation_config = {
+    "temperature": 1.65,
+    "top_p": 0.95,
+    "top_k": 64,
+    "max_output_tokens": 8192,
+    "response_mime_type": "text/plain",
+}
+
+
+def get_prompt():
+    with open("prompt.txt", 'r', encoding='utf-8') as file:
+        lines = file.readlines()
+    return ''.join(line.strip() + '\n' for line in lines).strip()
+
+
+model = genai.GenerativeModel(
+    model_name="gemini-1.5-flash",
+    generation_config=generation_config,
+    safety_settings={
+        HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT:
+        HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT:
+        HarmBlockThreshold.BLOCK_NONE
+    },
+    # See https://ai.google.dev/gemini-api/docs/safety-settings
+    system_instruction=get_prompt(),
+)
 
 bot = telebot.TeleBot(API_KEY)
-client = Groq(api_key=GROQ_API_KEY)
 
 MuteDuration = 300
 kd = 30
@@ -205,26 +234,6 @@ def check_spam(user_id):
     return True
 
 
-# Получение ответа от Groq
-def get_completion(messages):
-    try:
-        completion = client.chat.completions.create(model="gemma2-9b-it",
-                                                    messages=messages,
-                                                    temperature=0.70,
-                                                    max_tokens=900,
-                                                    top_p=1,
-                                                    stream=True)
-
-        response = ""
-        for chunk in completion:
-            response += chunk.choices[0].delta.content or ""
-        logging.debug(f"Response from Groq: {response}")
-        return response
-    except Exception as e:
-        logging.error(f"Error getting completion: {e}")
-        return f"Произошла ошибка при обработке вашего запроса. {e}"
-
-
 # Обработчик сообщений
 def handle_user_message(message, is_business=False):
     try:
@@ -251,25 +260,14 @@ def handle_user_message(message, is_business=False):
             return
 
         if user_id not in user_dialogues:
-            user_dialogues[user_id] = []
+            user_dialogues[user_id] = model.start_chat(history=[])
 
         if user_id not in user_modes:
             user_modes[user_id] = "AI"  # Default mode is AI
 
         if user_modes[user_id] == "AI":
-            user_dialogues[user_id].append({"role": "user", "content": text})
+            response = user_dialogues[user_id].send_message(text)
 
-            system_message = {"role": "system", "content": get_prompt()}
-            user_dialogues[user_id].insert(0, system_message)
-            logging.debug(
-                f"Dialogue before completion: {user_dialogues[user_id]}")
-            response = get_completion(user_dialogues[user_id])
-            user_dialogues[user_id].pop(0)
-
-            user_dialogues[user_id].append({
-                "role": "assistant",
-                "content": response
-            })
             logging.debug(
                 f"Dialogue after completion: {user_dialogues[user_id]}")
 
@@ -284,11 +282,11 @@ def handle_user_message(message, is_business=False):
                     callback_data=buttons[0]["callback_data"]))
             if is_business:
                 bot.send_message(message.chat.id,
-                                 response,
+                                 response.text,
                                  reply_markup=markup,
                                  business_connection_id=is_business)
             else:
-                bot.reply_to(message, response, reply_markup=markup)
+                bot.reply_to(message, response.text, reply_markup=markup)
         else:
             sent_message = bot.forward_message(1268026433, message.chat.id,
                                                message.message_id)
