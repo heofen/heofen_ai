@@ -208,13 +208,12 @@ def check_spam(user_id):
 # Получение ответа от Groq
 def get_completion(messages):
     try:
-        completion = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=messages,
-            temperature=0.70,
-            max_tokens=900,
-            top_p=1,
-            stream=True)
+        completion = client.chat.completions.create(model="gemma2-9b-it",
+                                                    messages=messages,
+                                                    temperature=0.70,
+                                                    max_tokens=900,
+                                                    top_p=1,
+                                                    stream=True)
 
         response = ""
         for chunk in completion:
