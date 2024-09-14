@@ -1,64 +1,62 @@
 import logging
 import json
 import time
-import telebot
-from telebot import types
-from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup, ChatPermissions
+import random
+from aiogram import Bot, Dispatcher, types, F
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ChatPermissions
+from aiogram.filters import Command, CommandObject
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 import google.generativeai as genai
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
-import random
 
-print("hui")
+# Логирование
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Настройка детального логирования
-logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
-
-# Токены API
+# Настройка API ключей
 API_KEY = "7413001217:AAGNi4YerK7M-5kjAvl_wjCfTd3FG4HEFAU"
 genai.configure(api_key="AIzaSyArBxqYLLZs_U6f1ybL8Ngas0DP1q_EnKQ")
 
 generation_config = {
-    "temperature": 1.65,
+    "temperature": 2,
     "top_p": 0.95,
     "top_k": 64,
     "max_output_tokens": 8192,
     "response_mime_type": "text/plain",
 }
 
-
 def get_prompt():
     with open("prompt.txt", 'r', encoding='utf-8') as file:
         lines = file.readlines()
     return ''.join(line.strip() + '\n' for line in lines).strip()
 
-
+# Настройки модели
 model = genai.GenerativeModel(
     model_name="gemini-1.5-flash",
     generation_config=generation_config,
     safety_settings={
         HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
         HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
-        HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT:
-        HarmBlockThreshold.BLOCK_NONE,
-        HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT:
-        HarmBlockThreshold.BLOCK_NONE
+        HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE
     },
-    # See https://ai.google.dev/gemini-api/docs/safety-settings
-    system_instruction=get_prompt(),
+    system_instruction=get_prompt()
 )
 
-bot = telebot.TeleBot(API_KEY)
+# Инициализация бота и диспетчера
+bot = Bot(token=API_KEY)
+dp = Dispatcher()
 
 MuteDuration = 300
 kd = 30
-mute_flag = True
+mute_flag = False
 
+# Переменные для хранения данных пользователей
 user_dialogues = {}
 user_modes = {}
 users_time = {}
 forwarded_messages = {}
 lastUsage = 0
+lastUsages = {}
 
 answers = [
     "Умный не тот, кто умный, а тот, кто с калькулятором",
@@ -70,134 +68,72 @@ answers = [
     "Знающий не тот, кто знает, а тот, у кого Google открыт"
 ]
 
-
-def helpMessage(message):
-    bot.reply_to(
-        message,
-        "Этот бот вобрал в себя всю шизу разраба\n\nЧто-бы бот ответил вам используйте в начале сообщения команду /ai"
-    )
-
-
-lastUsages = {"1488": 1488}
-
-
-@bot.message_handler(commands=['m_duration'])
-def mute_duration(message):
+@dp.message(Command('m_duration'))
+async def mute_duration(message: types.Message, command: CommandObject):
     chat_id = message.chat.id
-    admins = bot.get_chat_administrators(chat_id)
+    admins = await bot.get_chat_administrators(chat_id)
+    admin_list = [admin.user.id for admin in admins]
 
-    admin_list = []
-    for admin in admins:
-        user = admin.user
-        admin_list.append(user.id)
-
-    if message.from_user.id in admin_list and len(message.text.split()) == 2:
+    if message.from_user.id in admin_list and len(command.args.split()) == 1:
         global MuteDuration
-        MuteDuration = int(message.text.split()[-1])
-        bot.reply_to(
-            message,
-            f"Продолжительность мута изминена на {MuteDuration} секунд")
+        MuteDuration = int(command.args)
+        await message.reply(f"Продолжительность мута изменена на {MuteDuration} секунд.")
 
-
-@bot.message_handler(commands=['ai_kd'])
-def mute_duration(message):
+@dp.message(Command('ai_kd'))
+async def ai_kd(message: types.Message, command: CommandObject):
     chat_id = message.chat.id
-    admins = bot.get_chat_administrators(chat_id)
+    admins = await bot.get_chat_administrators(chat_id)
+    admin_list = [admin.user.id for admin in admins]
 
-    admin_list = []
-    for admin in admins:
-        user = admin.user
-        admin_list.append(user.id)
-
-    if message.from_user.id in admin_list and len(message.text.split()) == 2:
+    if message.from_user.id in admin_list and len(command.args.split()) == 1:
         global kd
-        kd = int(message.text.split()[-1])
-        bot.reply_to(message, f"Кд изминен на {kd} секунд")
+        kd = int(command.args)
+        await message.reply(f"Кд изменен на {kd} секунд.")
 
 
-@bot.message_handler(commands=['switch_mute'])
-def mute_duration(message):
+@dp.message(Command('switch_mute'))
+async def switch_mute(message: types.Message):
     chat_id = message.chat.id
-    admins = bot.get_chat_administrators(chat_id)
+    admins = await bot.get_chat_administrators(chat_id)
+    admin_list = [admin.user.id for admin in admins]
 
-    admin_list = []
-    for admin in admins:
-        user = admin.user
-        admin_list.append(user.id)
-
-    if message.from_user.id in admin_list and len(message.text.split()) == 1:
+    if message.from_user.id in admin_list:
         global mute_flag
-        if (mute_flag):
-            mute_flag = False
-        else:
-            mute_flag = True
-        bot.reply_to(message, f"Режим антиспама переключен на {mute_flag}")
+        mute_flag = not mute_flag
+        await message.reply(f"Режим антиспама переключен на {mute_flag}.")
 
 
-@bot.message_handler(commands=['adm_help'])
-def mute_duration(message):
+@dp.message(Command('adm_help'))
+async def adm_help(message: types.Message):
     chat_id = message.chat.id
-    admins = bot.get_chat_administrators(chat_id)
+    admins = await bot.get_chat_administrators(chat_id)
+    admin_list = [admin.user.id for admin in admins]
 
-    admin_list = []
-    for admin in admins:
-        user = admin.user
-        admin_list.append(user.id)
+    if message.from_user.id in admin_list:
+        await message.reply(f"Период мута: {MuteDuration} секунд\nКд: {kd} секунд\nРежим антиспама: {mute_flag}\n\n/m_duration <период> - изменить период мута\n/ai_kd <кд> - изменить кд\n/switch_mute - переключить режим антиспама")
 
-    if message.from_user.id in admin_list and len(message.text.split()) == 1:
-        bot.reply_to(
-            message,
-            f"Период мута: {MuteDuration} секунд\nКд: {kd}\nРежим антиспама: {mute_flag}\n\n/m_duration <период> - изменить период мута\n/ai_kd <кд> - изменить кд\n/switch_mute - переключить режим антиспама"
-        )
-
-
-def mute(message):
+async def mute(message: types.Message):
     user_id = message.from_user.id
     chat_id = message.chat.id
-
-    # Текущая временная метка + 5 минут (300 секунд)
-    until_date = int(time.time()) + 300
+    until_date = int(time.time()) + MuteDuration
 
     try:
-        # Ограничиваем пользователя
-        bot.restrict_chat_member(chat_id,
-                                 user_id,
-                                 until_date=until_date,
-                                 can_send_messages=False,
-                                 can_send_media_messages=False,
-                                 can_send_other_messages=False,
-                                 can_add_web_page_previews=False,
-                                 can_change_info=False,
-                                 can_invite_users=False,
-                                 can_pin_messages=False)
+        await bot.restrict_chat_member(chat_id, user_id, permissions=ChatPermissions(can_send_messages=False), until_date=until_date)
         if MuteDuration == 0:
             return
-        if MuteDuration < 60:
-            mute_msg = f"Пользователь {message.from_user.first_name} заглушен на {MuteDuration} секунд."
-        else:
-            mute_msg = f"Пользователь {message.from_user.first_name} заглушен на {MuteDuration // 60} минут."
-        bot.reply_to(message, mute_msg)
+        mute_msg = f"Пользователь {message.from_user.first_name} заглушен на {MuteDuration // 60} минут."
+        await message.reply(mute_msg)
     except Exception as e:
-        bot.reply_to(message, f"Ошибка при заглушении: {e}")
+        await message.reply(f"Ошибка при заглушении: {e}")
 
 
-def get_prompt():
-    with open("prompt.txt", 'r', encoding='utf-8') as file:
-        lines = file.readlines()
-    return ''.join(line.strip() + '\n' for line in lines).strip()
-
-
-# Чёрный список
 def check_blacklist(user_id):
     try:
         with open("blacklist.json", 'r', encoding='utf-8') as f:
             data = json.load(f)
-        logging.debug(f"Blacklist data: {data}")
         return int(user_id) not in data["blacklist"]
-    except (FileNotFoundError, json.JSONDecodeError) as e:
-        logging.error(f"Error loading blacklist: {e}")
+    except (FileNotFoundError, json.JSONDecodeError):
         return True
-
 
 def add_blacklist(user_id):
     try:
@@ -205,37 +141,13 @@ def add_blacklist(user_id):
             data = json.load(f)
             data["blacklist"].append(int(user_id))
             f.seek(0)
-            f.write(json.dumps(data, ensure_ascii=False, indent=4))
-            f.truncate()
-        logging.info(f"User {user_id} added to blacklist")
-    except (FileNotFoundError, json.JSONDecodeError) as e:
-        logging.error(f"Error updating blacklist: {e}")
+            json.dump(data, f, ensure_ascii=False, indent=4)
+    except (FileNotFoundError, json.JSONDecodeError):
         with open("blacklist.json", 'w', encoding='utf-8') as f:
-            data = {"blacklist": [int(user_id)]}
-            f.write(json.dumps(data, ensure_ascii=False, indent=4))
+            json.dump({"blacklist": [int(user_id)]}, f, ensure_ascii=False, indent=4)
 
 
-def check_spam(user_id):
-    if not check_blacklist(user_id):
-        return False
-
-    user_id = str(user_id)
-    if user_id not in users_time:
-        users_time[user_id] = []
-
-    users_time[user_id].append(time.time())
-
-    if len(users_time[user_id]) > 5:
-        users_time[user_id] = users_time[user_id][-5:]
-        if users_time[user_id][-1] - users_time[user_id][0] < 10:
-            add_blacklist(user_id)
-            return False
-
-    return True
-
-
-# Обработчик сообщений
-def handle_user_message(message, is_business=False):
+async def handle_user_message(message: types.Message, is_business=False):
     try:
         user_id = message.from_user.id
         logging.debug(f"Received message from {user_id}: {message.text}")
@@ -246,127 +158,80 @@ def handle_user_message(message, is_business=False):
         else:
             text = message.text
 
-        if not check_spam(user_id):
-            if is_business:
-                bot.send_message(
-                    message.chat.id,
-                    "Вы были заблокированы за спам. За разбаном пишите в https://t.me/aikomarucardsbot",
-                    business_connection_id=is_business)
-            else:
-                bot.send_message(
-                    message.chat.id,
-                    "Вы были заблокированы за спам. За разбаном пишите в https://t.me/aikomarucardsbot"
-                )
-            return
-
         if user_id not in user_dialogues:
             user_dialogues[user_id] = model.start_chat(history=[])
 
         if user_id not in user_modes:
-            user_modes[user_id] = "AI"  # Default mode is AI
+            user_modes[user_id] = "AI"
 
         if user_modes[user_id] == "AI":
             response = user_dialogues[user_id].send_message(text)
+            logging.debug(f"Dialogue after completion: {user_dialogues[user_id]}")
 
-            logging.debug(
-                f"Dialogue after completion: {user_dialogues[user_id]}")
+            builder = InlineKeyboardBuilder()
+            builder.add(InlineKeyboardButton(text="Очистить диалог", callback_data=f"clear_dialogue_{str(message.from_user.id)}"))
+            builder.as_markup()
 
-            buttons = [{
-                "text": "Очистить диалог",
-                "callback_data": "clear_dialogue"
-            }]
-            markup = types.InlineKeyboardMarkup()
-            markup.add(
-                types.InlineKeyboardButton(
-                    buttons[0]["text"],
-                    callback_data=buttons[0]["callback_data"]))
             if is_business:
-                bot.send_message(message.chat.id,
-                                 response.text,
-                                 reply_markup=markup,
-                                 business_connection_id=is_business)
+                await bot.send_message(message.chat.id, response.text, reply_markup=builder.as_markup())
             else:
-                bot.reply_to(message, response.text, reply_markup=markup)
+                await message.reply(response.text, reply_markup=builder.as_markup())
+
         else:
-            sent_message = bot.forward_message(1268026433, message.chat.id,
-                                               message.message_id)
+            sent_message = await bot.forward_message(1268026433, message.chat.id, message.message_id)
             forwarded_messages[sent_message.message_id] = user_id
     except Exception as e:
-        logging.error(f"Error handling message: {e}")
+        await message.reply(f"Произошла ошибка {e}")
 
-
-# @bot.business_message_handler(func=lambda message: True, content_types=['text'])
-# def handle_business_message(message):
-#     logging.debug("Handle business message")
-#     logging.debug(f"Message JSON: {message.json}")
-#
-#     handle_user_message(message, is_business=message.business_connection_id)
-
-
-@bot.message_handler(content_types=['text'])
-def handle_private_message(message):
+@dp.message()
+async def handle_private_message(message: types.Message):
     global lastUsage
     global lastUsages
-    logging.debug("Handle private message")
-    logging.debug(f"Received message: {message}")
+
     if message.chat.id in [-1002244372251, -1002212017812]:
-        if message.text == "/help" or message.text == "/help@heofenAiBot":
-            helpMessage(message)
-        if message.text.startswith("/ai") or (
-                message.reply_to_message
-                and message.reply_to_message.from_user.id == 7413001217):
+        if message.text == "/help":
+            await message.reply("Этот бот вобрал в себя всю шизу разраба\n\nЧто-бы бот ответил вам используйте в начале сообщения команду /ai")
+        if message.text.startswith("/ai") or (message.reply_to_message and message.reply_to_message.from_user.id == 7413001217):
             user_id = str(message.from_user.id)
             if user_id not in lastUsages:
                 lastUsages[user_id] = 0
+
             if lastUsages[user_id] + kd > time.time() and mute_flag:
-                mute(message)
+                await mute(message)
             elif time.time() - lastUsage < 1.5:
-                markup = InlineKeyboardMarkup()
-                button = InlineKeyboardButton(
-                    "Почему?",
-                    url=
-                    "https://telegra.ph/Pochemu-speshka-ehto-ne-ochen-horosho-09-13"
-                )
-                markup.add(button)
-                bot.reply_to(message, "Не так быстро", reply_markup=markup)
+                markup = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Почему?", url="https://telegra.ph/Pochemu-speshka-ehto-ne-ochen-horosho-09-13")]])
+                await message.reply("Не так быстро", reply_markup=markup)
                 lastUsages[user_id] = time.time()
-            elif (message.text == '/ai'):
-                bot.reply_to(message, random.choice(answers))
+            elif message.text == "/ai":
+                await message.reply(random.choice(answers))
                 lastUsages[user_id] = time.time()
             else:
-                handle_user_message(message, is_business=False)
+                await handle_user_message(message)
                 lastUsage = time.time()
                 lastUsages[user_id] = time.time()
     else:
-        markup = InlineKeyboardMarkup()
-        button = InlineKeyboardButton("Я живу тут",
-                                      url="https://t.me/+qemKO_g9GiRlYmRi")
-        markup.add(button)
-        bot.reply_to(
-            message,
-            "Бот работает только в чате канала Бордель Сони. Что-бы использовтать бота нажмите кнопку ниже",
-            reply_markup=markup)
-        if message.chat.type in ["supergroup", "group"]:
-            bot.leave_chat(message.chat.id)
+        markup = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Я живу тут", url="https://t.me/+qemKO_g9GiRlYmRi")]])
+        await message.reply("Бот работает только в чате канала. Чтобы использовать бота, нажмите кнопку ниже", reply_markup=markup)
+
+@dp.callback_query(F.data.startswith("clear_dialogue"))
+async def clear_dialogue(callback_query: types.CallbackQuery):
+    user_id = callback_query.data.split('_')[-1]
+    user_who_pressed = callback_query.from_user.id
+    if int(user_id) == user_who_pressed:
+        global user_dialogues
+        if user_id in user_dialogues:
+            del (user_dialogues[user_id])
+            await callback_query.answer("Диалог очищен")
+        else:
+            await callback_query.answer("Балбес, мы даже не общались")
+    else:
+        await callback_query.answer("Не ну ты ваще бобик ёбик")
 
 
-# Обработчик callback-запросов
-@bot.callback_query_handler(func=lambda call: call.data in ["clear_dialogue"])
-def handle_callback(call):
-    try:
-        user_id = call.from_user.id
-        logging.debug(f"Callback query from {user_id}: {call.data}")
 
-        if call.data == "clear_dialogue":
-            if user_id in user_dialogues:
-                user_dialogues[user_id] = []
-            bot.answer_callback_query(call.id, "Диалог очищен.")
-    except Exception as e:
-        logging.error(f"Error handling callback query: {e}")
+async def main():
+    await dp.start_polling(bot)
 
-
-logging.info("Starting bot polling...")
-try:
-    bot.polling()
-except Exception as e:
-    logging.error(f"Error starting bot polling: {e}")
+if __name__ == "__main__":
+    import asyncio
+    asyncio.run(main())
