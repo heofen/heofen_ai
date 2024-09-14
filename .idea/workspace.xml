@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4fa170fc-d6ae-43e9-a811-d49b70e73b68" name="Changes" comment="">
+    <list default="true" id="4fa170fc-d6ae-43e9-a811-d49b70e73b68" name="Changes" comment="new model">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/heofen_ai.py" beforeDir="false" afterPath="$PROJECT_DIR$/heofen_ai.py" afterDir="false" />
     </list>
@@ -16,6 +16,18 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;heofen&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/heofen/heofen_ai&quot;,
+    &quot;accountId&quot;: &quot;ede18500-5983-4433-89c1-af23e3f69da8&quot;
+  }
+}</component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 7
 }</component>
@@ -28,7 +40,7 @@
   "keyToString": {
     "Python.heofen_ai.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "v1.1"
+    "git-widget-placeholder": "v2"
   }
 }]]></component>
   <component name="RunManager">
@@ -72,6 +84,28 @@
       <option name="presentableId" value="Default" />
       <updated>1726231725613</updated>
     </task>
+    <task id="LOCAL-00001" summary="hui">
+      <option name="closed" value="true" />
+      <created>1726262680723</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1726262680723</updated>
+    </task>
+    <task id="LOCAL-00002" summary="new model">
+      <option name="closed" value="true" />
+      <created>1726263101837</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1726263101837</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="hui" />
+    <MESSAGE value="new model" />
+    <option name="LAST_COMMIT_MESSAGE" value="new model" />
   </component>
 </project>

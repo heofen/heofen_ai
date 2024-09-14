@@ -188,10 +188,10 @@ async def handle_private_message(message: types.Message):
     global lastUsage
     global lastUsages
 
-    if message.chat.id in [-1002244372251, -1002212017812]:
+    if message.chat.id in [-1002244372251, -1002212017812] or message.chat.type == "private":
         if message.text == "/help":
             await message.reply("Этот бот вобрал в себя всю шизу разраба\n\nЧто-бы бот ответил вам используйте в начале сообщения команду /ai")
-        if message.text.startswith("/ai") or (message.reply_to_message and message.reply_to_message.from_user.id == 7413001217):
+        if message.text.startswith("/ai") or (message.reply_to_message and message.reply_to_message.from_user.id == 7413001217) or message.chat.type == "private":
             user_id = str(message.from_user.id)
             if user_id not in lastUsages:
                 lastUsages[user_id] = 0
@@ -202,7 +202,7 @@ async def handle_private_message(message: types.Message):
                 markup = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Почему?", url="https://telegra.ph/Pochemu-speshka-ehto-ne-ochen-horosho-09-13")]])
                 await message.reply("Не так быстро", reply_markup=markup)
                 lastUsages[user_id] = time.time()
-            elif message.text == "/ai":
+            elif message.text == "/ai" and message.chat.type != "private":
                 await message.reply(random.choice(answers))
                 lastUsages[user_id] = time.time()
             else:
@@ -212,6 +212,7 @@ async def handle_private_message(message: types.Message):
     else:
         markup = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Я живу тут", url="https://t.me/+qemKO_g9GiRlYmRi")]])
         await message.reply("Бот работает только в чате канала. Чтобы использовать бота, нажмите кнопку ниже", reply_markup=markup)
+
 
 @dp.callback_query(F.data.startswith("clear_dialogue"))
 async def clear_dialogue(callback_query: types.CallbackQuery):
