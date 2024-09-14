@@ -8,6 +8,7 @@ from aiogram.filters import Command, CommandObject
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 import google.generativeai as genai
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
+from aiogram.enums import ParseMode
 
 # Логирование
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -175,7 +176,7 @@ async def handle_user_message(message: types.Message, is_business=False):
             if is_business:
                 await bot.send_message(message.chat.id, response.text, reply_markup=builder.as_markup())
             else:
-                await message.reply(response.text, reply_markup=builder.as_markup())
+                await message.reply(response.text, reply_markup=builder.as_markup(), parse_mode="MarkDown")
 
         else:
             sent_message = await bot.forward_message(1268026433, message.chat.id, message.message_id)
