@@ -208,12 +208,13 @@ def check_spam(user_id):
 # Получение ответа от Groq
 def get_completion(messages):
     try:
-        completion = client.chat.completions.create(model="llama-3.1-8b-instant",
-                                                    messages=messages,
-                                                    temperature=0.70,
-                                                    max_tokens=900,
-                                                    top_p=1,
-                                                    stream=True)
+        completion = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=messages,
+            temperature=0.70,
+            max_tokens=900,
+            top_p=1,
+            stream=True)
 
         response = ""
         for chunk in completion:
@@ -311,7 +312,7 @@ def handle_private_message(message):
     global lastUsages
     logging.debug("Handle private message")
     logging.debug(f"Received message: {message}")
-    if message.chat.id in [-1002212481103, -1002244372251]:
+    if message.chat.id in [-1002244372251, -1002212017812]:
         if message.text == "/help" or message.text == "/help@heofenAiBot":
             helpMessage(message)
         if message.text.startswith("/ai") or (
@@ -340,10 +341,14 @@ def handle_private_message(message):
                 lastUsage = time.time()
                 lastUsages[user_id] = time.time()
     else:
+        markup = InlineKeyboardMarkup()
+        button = InlineKeyboardButton("Я живу тут",
+                                      url="https://t.me/+qemKO_g9GiRlYmRi")
+        markup.add(button)
         bot.reply_to(
             message,
-            "Бот работает только в чате канала t.me/komaru_updates. Что-бы использовтать бота перейдите по ссылке"
-        )
+            "Бот работает только в чате канала Бордель Сони. Что-бы использовтать бота нажмите кнопку ниже",
+            reply_markup=markup)
         if message.chat.type in ["supergroup", "group"]:
             bot.leave_chat(message.chat.id)
 
