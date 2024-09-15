@@ -2,10 +2,9 @@ import logging
 import json
 import time
 import random
-from mailbox import Message
 
 from aiogram import Bot, Dispatcher, types, F
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ChatPermissions
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ChatPermissions, Message
 from aiogram.filters import Command, CommandObject
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 import google.generativeai as genai
@@ -232,16 +231,17 @@ async def handle_private_message(message: types.Message):
         await message.reply("Бот работает только в чате канала. Чтобы использовать бота, нажмите кнопку ниже", reply_markup=markup)
 
 
+@dp.callback_query(F.data.startswith("clear_dialogue_"))
 async def clear_dialogue(callback_query: types.CallbackQuery):
     from deep_prompt_inspect import clearHistoryLogging
     user_id = callback_query.data.split('_')[-1]
     user_who_pressed = callback_query.from_user.id
     if int(user_id) == user_who_pressed:
         global user_dialogues
-        if str(user_who_pressed) in user_dialogues:
+        if user_who_pressed in user_dialogues:
             print("История очищена")
             await callback_query.answer("Диалог очищен")
-            del (user_dialogues[str(user_who_pressed)])
+            del (user_dialogues[user_who_pressed])
             await clearHistoryLogging(str(user_who_pressed), "Inline by user", "pressed button")
         else:
             await callback_query.answer("Балбес, мы даже не общались")
