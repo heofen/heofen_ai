@@ -7,11 +7,19 @@
     <list default="true" id="4fa170fc-d6ae-43e9-a811-d49b70e73b68" name="Changes" comment="new model">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/heofen_ai.py" beforeDir="false" afterPath="$PROJECT_DIR$/heofen_ai.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/prompt.txt" beforeDir="false" afterPath="$PROJECT_DIR$/prompt.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -43,6 +51,11 @@
     "git-widget-placeholder": "v2"
   }
 }]]></component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\bilal\Desktop\heofen_ai" />
+    </key>
+  </component>
   <component name="RunManager">
     <configuration name="heofen_ai" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
       <module name="heofen_ai" />

@@ -2,13 +2,14 @@ import logging
 import json
 import time
 import random
+from mailbox import Message
+
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ChatPermissions
 from aiogram.filters import Command, CommandObject
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 import google.generativeai as genai
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
-from aiogram.enums import ParseMode
 
 # Логирование
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -69,6 +70,13 @@ answers = [
     "Знающий не тот, кто знает, а тот, у кого Google открыт"
 ]
 
+
+
+async def clearHistory(user_id):
+    global user_dialogues
+    user_id = str(user_id)
+    del(user_dialogues[user_id])
+
 @dp.message(Command('m_duration'))
 async def mute_duration(message: types.Message, command: CommandObject):
     chat_id = message.chat.id
@@ -113,40 +121,34 @@ async def adm_help(message: types.Message):
     if message.from_user.id in admin_list:
         await message.reply(f"Период мута: {MuteDuration} секунд\nКд: {kd} секунд\nРежим антиспама: {mute_flag}\n\n/m_duration <период> - изменить период мута\n/ai_kd <кд> - изменить кд\n/switch_mute - переключить режим антиспама")
 
-async def mute(message: types.Message):
+async def mute(message: types.Message, duration=MuteDuration, reason = ""):
     user_id = message.from_user.id
     chat_id = message.chat.id
-    until_date = int(time.time()) + MuteDuration
+    until_date = int(time.time()) + duration
 
     try:
         await bot.restrict_chat_member(chat_id, user_id, permissions=ChatPermissions(can_send_messages=False), until_date=until_date)
-        if MuteDuration == 0:
+        if duration == 0:
             return
-        mute_msg = f"Пользователь {message.from_user.first_name} заглушен на {MuteDuration // 60} минут."
+        if reason != "":
+            reason = f"\nПричина: {reason}"
+        mute_msg = f"Пользователь {message.from_user.first_name} заглушен на {duration // 60} минут.{reason}"
         await message.reply(mute_msg)
     except Exception as e:
         await message.reply(f"Ошибка при заглушении: {e}")
 
+async def ban(message: Message):
+    user_id = message.from_user.id
+    chat_id = -1002212017812
+    await bot.ban_chat_member(chat_id, user_id)
 
-def check_blacklist(user_id):
+async def check_blacklist(user_id):
     try:
         with open("blacklist.json", 'r', encoding='utf-8') as f:
             data = json.load(f)
         return int(user_id) not in data["blacklist"]
     except (FileNotFoundError, json.JSONDecodeError):
         return True
-
-def add_blacklist(user_id):
-    try:
-        with open("blacklist.json", 'r+', encoding='utf-8') as f:
-            data = json.load(f)
-            data["blacklist"].append(int(user_id))
-            f.seek(0)
-            json.dump(data, f, ensure_ascii=False, indent=4)
-    except (FileNotFoundError, json.JSONDecodeError):
-        with open("blacklist.json", 'w', encoding='utf-8') as f:
-            json.dump({"blacklist": [int(user_id)]}, f, ensure_ascii=False, indent=4)
-
 
 async def handle_user_message(message: types.Message, is_business=False):
     try:
@@ -176,6 +178,8 @@ async def handle_user_message(message: types.Message, is_business=False):
             if is_business:
                 await bot.send_message(message.chat.id, response.text, reply_markup=builder.as_markup())
             else:
+                from deep_prompt_inspect import logging_ai
+                await logging_ai(user_id, response.text, "AI")
                 await message.reply(response.text, reply_markup=builder.as_markup(), parse_mode="MarkDown")
 
         else:
@@ -190,6 +194,7 @@ async def handle_private_message(message: types.Message):
     global lastUsages
 
     if message.chat.id in [-1002244372251, -1002212017812] or message.chat.type == "private":
+        from deep_prompt_inspect import censorProcessor
         if message.text == "/help":
             await message.reply("Этот бот вобрал в себя всю шизу разраба\n\nЧто-бы бот ответил вам используйте в начале сообщения команду /ai")
         if message.text.startswith("/ai") or (message.reply_to_message and message.reply_to_message.from_user.id == 7413001217) or message.chat.type == "private":
@@ -200,30 +205,44 @@ async def handle_private_message(message: types.Message):
             if lastUsages[user_id] + kd > time.time() and mute_flag:
                 await mute(message)
             elif time.time() - lastUsage < 1.5:
-                markup = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Почему?", url="https://telegra.ph/Pochemu-speshka-ehto-ne-ochen-horosho-09-13")]])
+                markup = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Почему спешка это плохо", url="https://telegra.ph/Pochemu-speshka-ehto-ne-ochen-horosho-09-13")]])
                 await message.reply("Не так быстро", reply_markup=markup)
                 lastUsages[user_id] = time.time()
             elif message.text == "/ai" and message.chat.type != "private":
-                await message.reply(random.choice(answers))
-                lastUsages[user_id] = time.time()
+                if await check_blacklist(user_id):
+                    await message.reply(random.choice(answers))
+                    lastUsages[user_id] = time.time()
+                else:
+                    await message.reply("Вы были заблокированы в боте")
             else:
-                await handle_user_message(message)
-                lastUsage = time.time()
-                lastUsages[user_id] = time.time()
+                if await check_blacklist(user_id):
+                    from deep_prompt_inspect import logging_ai
+                    await logging_ai(user_id, message.text)
+                    await handle_user_message(message)
+                    lastUsage = time.time()
+                    lastUsages[user_id] = time.time()
+                else:
+                    await message.reply("Вы были заблокированы в боте")
+        else:
+            # await censorProcessor(message)
+            pass
+
     else:
         markup = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Я живу тут", url="https://t.me/+qemKO_g9GiRlYmRi")]])
         await message.reply("Бот работает только в чате канала. Чтобы использовать бота, нажмите кнопку ниже", reply_markup=markup)
 
 
-@dp.callback_query(F.data.startswith("clear_dialogue"))
 async def clear_dialogue(callback_query: types.CallbackQuery):
+    from deep_prompt_inspect import clearHistoryLogging
     user_id = callback_query.data.split('_')[-1]
     user_who_pressed = callback_query.from_user.id
     if int(user_id) == user_who_pressed:
         global user_dialogues
-        if user_id in user_dialogues:
-            del (user_dialogues[user_id])
+        if str(user_who_pressed) in user_dialogues:
+            print("История очищена")
             await callback_query.answer("Диалог очищен")
+            del (user_dialogues[str(user_who_pressed)])
+            await clearHistoryLogging(str(user_who_pressed), "Inline by user", "pressed button")
         else:
             await callback_query.answer("Балбес, мы даже не общались")
     else:
@@ -233,6 +252,7 @@ async def clear_dialogue(callback_query: types.CallbackQuery):
 
 async def main():
     await dp.start_polling(bot)
+    await bot.send_message(chat_id=-1002212017812, text="Бот был перезапущен")
 
 if __name__ == "__main__":
     import asyncio
